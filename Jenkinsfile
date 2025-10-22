@@ -1,4 +1,4 @@
-pipeline { 
+pipeline {
     agent any
 
     environment {
@@ -42,25 +42,29 @@ pipeline {
         }
 
         stage('Deploy with Terraform') {
-    steps {
-        echo '🏗️ Deploying EC2 instance and running Docker container...'
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
-            dir('terraform') {
-                bat """
-                "%TERRAFORM%" init
+            steps {
+                echo '🏗️ Deploying EC2 instance and running Docker container...'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
+                    dir('terraform') {
+                        bat """
+                        "%TERRAFORM%" init
 
-                REM Import existing resources if they already exist
-                "%TERRAFORM%" import aws_iam_role.ec2_role ec2-ecr-access-role || echo "IAM Role exists, skipping import..."
-                "%TERRAFORM%" import aws_security_group.web_sg sg-07709199eac5efed7 || echo "Security Group exists, skipping import..."
+                        REM Import IAM Role if it exists
+                        "%TERRAFORM%" import aws_iam_role.ec2_role ec2-ecr-access-role || echo "IAM Role exists, skipping..."
 
-                REM Apply Terraform
-                "%TERRAFORM%" apply -auto-approve
-                """
+                        REM Import Security Group if it exists
+                        "%TERRAFORM%" import aws_security_group.web_sg sg-07709199eac5efed7 || echo "Security Group exists, skipping..."
+
+                        REM Import IAM Instance Profile if it exists
+                        "%TERRAFORM%" import aws_iam_instance_profile.ec2_profile ec2-instance-profile || echo "Instance Profile exists, skipping..."
+
+                        REM Apply Terraform
+                        "%TERRAFORM%" apply -auto-approve
+                        """
+                    }
+                }
             }
         }
-    }
-}
-
     }
 
     post {
@@ -76,5 +80,7 @@ pipeline {
         }
     }
 }
+
+
 
 
