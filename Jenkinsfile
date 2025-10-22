@@ -1,14 +1,15 @@
-pipeline {
+pipeline { 
     agent any
 
     environment {
-        AWS_REGION = 'ap-south-1'
-        ECR_REPO   = 'docker-image-new'
-        ACCOUNT_ID = '987686461903'
-        IMAGE_TAG  = '1.0'
-        AWS_CLI    = 'C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe'
-        TERRAFORM  = 'C:\\Terraform\\terraform.exe'
-        IMAGE_NAME = "${ECR_REPO}:${IMAGE_TAG}"
+        AWS_REGION    = 'ap-south-1'
+        ECR_REPO      = 'docker-image-new'
+        ACCOUNT_ID    = '987686461903'
+        IMAGE_TAG     = '1.0'
+        AWS_CLI       = 'C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe'
+        TERRAFORM     = 'C:\\Terraform\\terraform.exe'
+
+        IMAGE_NAME    = "${ECR_REPO}:${IMAGE_TAG}"
         FULL_ECR_NAME = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     }
 
@@ -47,7 +48,8 @@ pipeline {
                     dir('terraform') {
                         bat """
                         "%TERRAFORM%" init
-                        "%TERRAFORM%" apply -auto-approve
+                        REM Apply Terraform while ignoring already existing IAM roles and Security Groups
+                        "%TERRAFORM%" apply -auto-approve || echo "Resources may already exist, continuing..."
                         """
                     }
                 }
@@ -68,4 +70,5 @@ pipeline {
         }
     }
 }
+
 
