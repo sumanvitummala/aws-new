@@ -27,29 +27,25 @@ pipeline {
             }
         }
 
-    
         stage('Push to AWS ECR') {
-    steps {
-        echo '🚀 Pushing image to AWS ECR...'
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
-            bat """
-            "%AWS_CLI%" ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %FULL_ECR_NAME%
-            docker tag %IMAGE_NAME% %FULL_ECR_NAME%:%IMAGE_TAG%
-            docker push %FULL_ECR_NAME%:%IMAGE_TAG%
-            """
+            steps {
+                echo '🚀 Pushing image to AWS ECR...'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
+                    bat """
+                    "%AWS_CLI%" ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %FULL_ECR_NAME%
+                    docker tag %IMAGE_NAME% %FULL_ECR_NAME%:%IMAGE_TAG%
+                    docker push %FULL_ECR_NAME%:%IMAGE_TAG%
+                    """
+                }
+            }
         }
-    }
-}
-
 
         stage('Deploy with Terraform') {
             steps {
                 echo '🏗️ Deploying EC2 instance and running Docker container...'
-                withCredentials([usernamePassword(credentialsId: 'aws-access', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
                     dir('terraform') {
                         bat """
-                        set AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID%
-                        set AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY%
                         "%TERRAFORM%" init
                         "%TERRAFORM%" apply -auto-approve
                         """
