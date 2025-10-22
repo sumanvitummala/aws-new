@@ -7,7 +7,7 @@ pipeline {
         ACCOUNT_ID = '987686461903'
         IMAGE_TAG  = '1.0'
         AWS_CLI    = 'C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe'
-        TERRAFORM  = 'C:\Terraform\terraform.exe'
+        TERRAFORM  = 'C:\\Terraform\\terraform.exe'
         IMAGE_NAME = "${ECR_REPO}:${IMAGE_TAG}"
         FULL_ECR_NAME = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     }
