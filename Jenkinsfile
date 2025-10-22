@@ -30,28 +30,22 @@ pipeline {
             }
         }
 
-        stage('Login to AWS ECR') {
-            steps {
-                echo "🔑 Logging in to AWS ECR..."
-                withCredentials([
-                    string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    bat """
-                    set AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID%
-                    set AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY%
-                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-                    """
-                }
-            }
+         stage('Push to AWS ECR') {
+      steps {
+        echo '🚀 Pushing image to AWS ECR...'
+        withCredentials([usernamePassword(credentialsId: 'AWS_ACCESS_KEY_ID', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          bat """
+          set AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID%
+          set AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY%
+          "%AWS_CLI%" ecr get-login-password --region %REGION% | docker login --username AWS --password-stdin %ECR_REPO%
+          docker tag %IMAGE_NAME%:latest %ECR_REPO%:latest
+          docker push %ECR_REPO%:latest
+          """
         }
+      }
+    }
 
-        stage('Push Docker Image to ECR') {
-            steps {
-                echo "📦 Pushing Docker image to AWS ECR..."
-                bat "docker push ${FULL_ECR_NAME}"
-            }
-        }
+    
 
 
     
