@@ -70,7 +70,7 @@ pipeline {
     }
 }
 
-
+    }
     post {
         success {
             echo "✅ Pipeline completed successfully!"
@@ -85,6 +85,6 @@ pipeline {
             cleanWs()  // Cleans up Jenkins workspace
         }
     }
-}
+
 }
 
