@@ -1,19 +1,46 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = var.region
 }
 
-# Key pair for EC2 (use your existing .pem private key)
-# Generate the public key from your PEM first:
-# ssh-keygen -y -f D:/aws-key-new.pem > D:/aws-key-new.pub
-resource "aws_key_pair" "jenkins_ec2_key" {
-  key_name   = "jenkins-ec2-key"
-  public_key = file("D:/aws-key-new.pub")
+# ------------------------------
+# IAM Role for EC2 to Access ECR
+# ------------------------------
+resource "aws_iam_role" "ec2_role" {
+  name = "ec2-ecr-access-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+    }]
+  })
 }
 
-# Security group to allow SSH and HTTP
-resource "aws_security_group" "jenkins_ec2_sg" {
-  name        = "jenkins-ec2-sg"
-  description = "Allow SSH and HTTP"
+resource "aws_iam_role_policy_attachment" "ecr_readonly_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "ec2-instance-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
+# ------------------------------
+# Security Group
+# ------------------------------
+resource "aws_security_group" "web_sg" {
+  name        = var.security_group_name
+  description = "Allow HTTP and SSH"
 
   ingress {
     from_port   = 22
@@ -35,40 +62,65 @@ resource "aws_security_group" "jenkins_ec2_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-# EC2 instance
-resource "aws_instance" "jenkins_ec2" {
-  ami           = "ami-06fa3f12191aa3337"  # Your AMI ID
-  instance_type = "t3.micro"               # Your instance type
-  key_name      = aws_key_pair.jenkins_ec2_key.key_name
-  security_groups = [aws_security_group.jenkins_ec2_sg.name]
 
   tags = {
-    Name = "Jenkins-Docker-EC2"
-  }
-
-  # Install Docker on EC2 after launch
-  provisioner "remote-exec" {
-    inline = [
-      "sudo yum update -y",
-      "sudo amazon-linux-extras install docker -y",
-      "sudo service docker start",
-      "sudo usermod -a -G docker ec2-user"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      host        = self.public_ip
-      private_key = file("D:/aws-key-new.pem")
-    }
+    Name = "jenkins-ec2-sg"
   }
 }
 
-# Output the public IP of EC2
+# ------------------------------
+# Latest Amazon Linux 2 AMI
+# ------------------------------
+data "aws_ami" "amazon_linux" {
+  most_recent = true
 
-output "ec2_public_ip" {
-  description = "Public IP of the EC2 instance"
-  value       = aws_instance.app_server.public_ip
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["amazon"]
+}
+
+# ------------------------------
+# EC2 Instance
+# ------------------------------
+resource "aws_instance" "web" {
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
+  key_name               = var.key_name
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  security_groups        = [aws_security_group.web_sg.name]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              amazon-linux-extras install docker -y
+              systemctl enable docker
+              systemctl start docker
+              usermod -a -G docker ec2-user
+              sleep 10
+
+              REGION=${var.region}
+              REPO=${var.ecr_repo_url}
+
+              aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO
+              docker pull $REPO
+
+              if [ $(docker ps -q -f name=docker-image-new) ]; then
+                docker stop docker-image-new
+                docker rm docker-image-new
+              fi
+
+              docker run -d --name docker-image-new -p 80:80 $REPO
+              EOF
+
+  tags = {
+    Name = "Docker-App-EC2"
+  }
 }
