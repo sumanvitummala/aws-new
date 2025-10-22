@@ -42,19 +42,25 @@ pipeline {
         }
 
         stage('Deploy with Terraform') {
-            steps {
-                echo '🏗️ Deploying EC2 instance and running Docker container...'
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
-                    dir('terraform') {
-                        bat """
-                        "%TERRAFORM%" init
-                        REM Apply Terraform while ignoring already existing IAM roles and Security Groups
-                        "%TERRAFORM%" apply -auto-approve || echo "Resources may already exist, continuing..."
-                        """
-                    }
-                }
+    steps {
+        echo '🏗️ Deploying EC2 instance and running Docker container...'
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
+            dir('terraform') {
+                bat """
+                "%TERRAFORM%" init
+
+                REM Import existing resources if they already exist
+                "%TERRAFORM%" import aws_iam_role.ec2_role ec2-ecr-access-role || echo "IAM Role exists, skipping import..."
+                "%TERRAFORM%" import aws_security_group.web_sg sg-07709199eac5efed7 || echo "Security Group exists, skipping import..."
+
+                REM Apply Terraform
+                "%TERRAFORM%" apply -auto-approve
+                """
             }
         }
+    }
+}
+
     }
 
     post {

@@ -1,4 +1,4 @@
-provider "aws" {
+provider "aws" { 
   region = var.region
 }
 
@@ -20,7 +20,8 @@ resource "aws_iam_role" "ec2_role" {
   })
 
   lifecycle {
-    prevent_destroy = true   # Prevent Terraform from failing if role exists
+    prevent_destroy = true
+    ignore_changes  = [assume_role_policy] # Ignore if policy already exists
   }
 }
 
@@ -76,7 +77,7 @@ resource "aws_security_group" "web_sg" {
   }
 
   lifecycle {
-    prevent_destroy = true   # Avoid duplicate SG errors
+    prevent_destroy = true
   }
 }
 
@@ -103,11 +104,11 @@ data "aws_ami" "amazon_linux" {
 # EC2 Instance
 # ------------------------------
 resource "aws_instance" "web" {
-  ami                    = data.aws_ami.amazon_linux.id
-  instance_type          = var.instance_type
-  key_name               = var.key_name
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-  security_groups        = [aws_security_group.web_sg.name]
+  ami                  = data.aws_ami.amazon_linux.id
+  instance_type        = var.instance_type
+  key_name             = var.key_name
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  security_groups      = [aws_security_group.web_sg.name]
 
   user_data = <<-EOF
               #!/bin/bash
@@ -136,5 +137,3 @@ resource "aws_instance" "web" {
     Name = "Docker-App-EC2"
   }
 }
-
-
