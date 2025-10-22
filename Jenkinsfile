@@ -34,17 +34,18 @@ pipeline {
     steps {
         echo '🚀 Pushing image to AWS ECR...'
         withCredentials([[
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'AWS_ACCESS_KEY_ID' // Replace with your AWS credentials ID
-        ]]) {
-            bat """
-            set AWS_REGION=ap-south-1
-            set REPO_URL=987686461903.dkr.ecr.ap-south-1.amazonaws.com
-            aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %REPO_URL%
-            docker tag docker-image-new:1.0 %REPO_URL%/docker-image-new:latest
-            docker push %REPO_URL%/docker-image-new:latest
-            """
-        }
+    $class: 'AmazonWebServicesCredentialsBinding',
+    credentialsId: 'aws-access' // <-- must match the AWS Credentials ID you just created
+]]) {
+    bat """
+    set AWS_REGION=%AWS_REGION%
+    set REPO_URL=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
+    aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %REPO_URL%
+    docker tag %ECR_REPO%:%IMAGE_TAG% %REPO_URL%/%ECR_REPO%:%IMAGE_TAG%
+    docker push %REPO_URL%/%ECR_REPO%:%IMAGE_TAG%
+    """
+}
+
     }
 }
 
