@@ -2,17 +2,14 @@ pipeline {
     agent any
 
     environment {
-        // AWS & ECR configuration
-        AWS_REGION = 'ap-south-1'
-        ECR_ACCOUNT_ID = '987686461903'
-        ECR_REPO = 'docker-image-new'
-        IMAGE_TAG = '1.0'
-        IMAGE_NAME = "${ECR_REPO}:${IMAGE_TAG}"
-        FULL_ECR_NAME = "987686461903.dkr.ecr.ap-south-1.amazonaws.com/docker-image-new"
+    AWS_REGION = 'ap-south-1'
+    ECR_REPO = 'docker-image-new'
+    IMAGE_TAG = "1.0"
+    ACCOUNT_ID = '987686461903'  // your AWS account ID
+    AWS_CREDS = 'aws-access'
+    FULL_ECR_NAME = "987686461903.dkr.ecr.ap-south-1.amazonaws.com/docker-image-new"
+}
 
-        // // Terraform configuration
-        // TERRAFORM_DIR = '.'   // terraform.tf is in repo root
-    }
 
     stages {
 
@@ -30,24 +27,24 @@ pipeline {
             }
         }
 
-        stage('Push to AWS ECR') {
+    stage('Push to AWS ECR') {
     steps {
         echo '🚀 Pushing image to AWS ECR...'
         withCredentials([[
-    $class: 'AmazonWebServicesCredentialsBinding',
-    credentialsId: 'aws-access' // <-- must match the AWS Credentials ID you just created
-]]) {
-    bat """
-    set AWS_REGION=%AWS_REGION%
-    set REPO_URL=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
-    aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %REPO_URL%
-    docker tag %ECR_REPO%:%IMAGE_TAG% %REPO_URL%/%ECR_REPO%:%IMAGE_TAG%
-    docker push %REPO_URL%/%ECR_REPO%:%IMAGE_TAG%
-    """
-}
-
+            $class: 'AmazonWebServicesCredentialsBinding',
+            credentialsId: "${AWS_CREDS}"
+        ]]) {
+            bat """
+            set AWS_REGION=%AWS_REGION%
+            set REPO_URL=%ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
+            aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %REPO_URL%
+            docker tag %ECR_REPO%:%IMAGE_TAG% %REPO_URL%/%ECR_REPO%:%IMAGE_TAG%
+            docker push %REPO_URL%/%ECR_REPO%:%IMAGE_TAG%
+            """
+        }
     }
 }
+
 
     
 
