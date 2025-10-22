@@ -53,21 +53,23 @@ pipeline {
         }
 
         stage('Deploy on EC2') {
-            steps {
-                script {
-                    // Get EC2 public IP from Terraform output
-                    EC2_HOST = bat(script: 'terraform output -raw ec2_public_ip', returnStdout: true).trim()
-                }
-                echo "🚢 Deploying Docker container on EC2: ${EC2_HOST}"
-                bat """
-                ssh -i ${PEM_PATH} ${EC2_USER}@${EC2_HOST} "docker stop ${ECR_REPO} || true"
-                ssh -i ${PEM_PATH} ${EC2_USER}@${EC2_HOST} "docker rm ${ECR_REPO} || true"
-                ssh -i ${PEM_PATH} ${EC2_USER}@${EC2_HOST} "docker run -d -p 80:80 --name ${ECR_REPO} ${FULL_ECR_NAME}"
-                """
-            }
-        }
+    steps {
+        script {
+            def ec2_ip = bat(script: 'terraform output -raw ec2_public_ip', returnStdout: true).trim()
+            echo "🚢 Deploying Docker container on EC2: ${ec2_ip}"
 
+            // Replace backslashes in PEM path for SSH
+            def pemPath = PEM_PATH.replaceAll('\\\\', '/')
+
+            bat """
+            echo y | plink -i ${pemPath} ec2-user@${ec2_ip} "docker stop docker-image-new || true"
+            echo y | plink -i ${pemPath} ec2-user@${ec2_ip} "docker rm docker-image-new || true"
+            echo y | plink -i ${pemPath} ec2-user@${ec2_ip} "docker run -d -p 80:80 --name docker-image-new ${FULL_ECR_NAME}"
+            """
+        }
     }
+}
+
 
     post {
         success {
