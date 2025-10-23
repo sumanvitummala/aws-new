@@ -128,8 +128,7 @@ resource "aws_security_group" "web_sg" {
 
   # Prevent accidental deletion, but ignore harmless updates
   lifecycle {
-    prevent_destroy = true
-    ignore_changes  = [description]
+    prevent_destroy = false
   }
 
   tags = {
