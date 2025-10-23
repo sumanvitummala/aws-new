@@ -48,45 +48,67 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 # Security Group
 # ------------------------------
 resource "aws_security_group" "web_sg" {
-  name        = var.security_group_name
-  description = "Allow HTTP, SSH, Prometheus, Grafana"
+  name        = "web_sg"
+  description = "Security group for web server (HTML site, Jenkins, Prometheus, Grafana, etc.)"
+  vpc_id      = aws_vpc.main.id
 
+  # Allow HTTP
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
+    description = "Allow HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Allow SSH
   ingress {
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Jenkins
+  ingress {
+    description = "Allow Jenkins"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Prometheus
+  ingress {
+    description = "Allow Prometheus"
     from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Allow Node Exporter
   ingress {
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
+    description = "Allow Node Exporter"
     from_port   = 9100
     to_port     = 9100
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Allow Grafana
   ingress {
+    description = "Allow Grafana"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow cAdvisor
+  ingress {
+    description = "Allow cAdvisor"
     from_port   = 8081
     to_port     = 8081
     protocol    = "tcp"
@@ -100,12 +122,14 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "jenkins-ec2-sg"
-  }
-
+  # Prevent accidental deletion, but ignore harmless updates
   lifecycle {
     prevent_destroy = true
+    ignore_changes  = [description]
+  }
+
+  tags = {
+    Name = "web_security_group"
   }
 }
 
