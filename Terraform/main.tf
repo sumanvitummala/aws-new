@@ -21,7 +21,7 @@ resource "aws_iam_role" "ec2_role" {
 
   lifecycle {
     prevent_destroy = true
-    ignore_changes  = [assume_role_policy] # Ignore if policy already exists
+    ignore_changes  = [assume_role_policy]
   }
 }
 
@@ -49,7 +49,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 # ------------------------------
 resource "aws_security_group" "web_sg" {
   name        = var.security_group_name
-  description = "Allow HTTP and SSH"
+  description = "Allow HTTP, SSH, Prometheus, Grafana"
 
   ingress {
     from_port   = 22
@@ -61,6 +61,34 @@ resource "aws_security_group" "web_sg" {
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8081
+    to_port     = 8081
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -111,29 +139,71 @@ resource "aws_instance" "web" {
   security_groups      = [aws_security_group.web_sg.name]
 
   user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
-              systemctl enable docker
-              systemctl start docker
-              usermod -a -G docker ec2-user
-              sleep 10
+#!/bin/bash
+yum update -y
+amazon-linux-extras install docker -y
+systemctl enable docker
+systemctl start docker
+usermod -a -G docker ec2-user
+sleep 10
 
-              REGION=${var.region}
-              REPO=${var.ecr_repo_url}
+REGION=${var.region}
+REPO=${var.ecr_repo_url}
 
-              aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO
-              docker pull $REPO
+# Run HTML App
+aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO
+docker pull $REPO
+if [ $(docker ps -q -f name=docker-image-new) ]; then
+    docker stop docker-image-new
+    docker rm docker-image-new
+fi
+docker run -d --name docker-image-new -p 80:80 $REPO
 
-              if [ $(docker ps -q -f name=docker-image-new) ]; then
-                docker stop docker-image-new
-                docker rm docker-image-new
-              fi
+# -------------------------
+# Node Exporter
+# -------------------------
+docker run -d --name node_exporter -p 9100:9100 prom/node-exporter
 
-              docker run -d --name docker-image-new -p 80:80 $REPO
-              EOF
+# -------------------------
+# cAdvisor
+# -------------------------
+docker run -d --name cadvisor \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:ro \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  -p 8081:8080 \
+  google/cadvisor:latest
+
+# -------------------------
+# Prometheus
+# -------------------------
+mkdir -p /home/ec2-user/prometheus
+cat <<EOT > /home/ec2-user/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['localhost:8081']
+EOT
+
+docker run -d --name prometheus -p 9090:9090 -v /home/ec2-user/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+
+# -------------------------
+# Grafana
+# -------------------------
+docker run -d --name grafana -p 3000:3000 grafana/grafana
+EOF
 
   tags = {
     Name = "Docker-App-EC2"
   }
 }
+
+

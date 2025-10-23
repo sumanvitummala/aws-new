@@ -15,16 +15,16 @@ pipeline {
 
     stages {
         stage('Clone Repository') {
-            steps {
+            steps { 
                 echo '📦 Cloning repository...'
-                git branch: 'main', url: 'https://github.com/sumanvitummala/aws-new.git'
+                git branch: 'main', url: 'https://github.com/sumanvitummala/aws-new.git' 
             }
         }
 
         stage('Build Docker Image') {
-            steps {
+            steps { 
                 echo '🐳 Building Docker image...'
-                bat "docker build -t %IMAGE_NAME% ."
+                bat "docker build -t %IMAGE_NAME% ." 
             }
         }
 
@@ -65,21 +65,33 @@ pipeline {
                 }
             }
         }
+
+        stage('Verify Monitoring') {
+            steps {
+                echo '📊 Monitoring stack: Prometheus, Grafana, Node Exporter, cAdvisor'
+                bat 'docker ps'
+            }
+        }
     }
 
-    post {
-        success {
-            echo '✅ Deployment complete! EC2 instance is running your Docker app.'
-            echo '🌍 Access it using the EC2 Public IP output from Terraform.'
-        }
-        failure {
-            echo '❌ Pipeline failed. Check logs for details.'
-        }
-        always {
-            cleanWs()
-        }
+   post {
+    success {
+        echo '✅ Deployment complete!'
+        echo "🌍 Access your web app at: http://<EC2_PUBLIC_IP>:80"
+        echo "📊 Access Prometheus at: http://<EC2_PUBLIC_IP>:9090"
+        echo "📈 Access Grafana at: http://<EC2_PUBLIC_IP>:3000"
+    }
+    failure { 
+        echo '❌ Pipeline failed. Check logs!' 
+    }
+    always { 
+        cleanWs() 
     }
 }
+
+}
+
+
 
 
 
