@@ -43,6 +43,9 @@ resource "aws_iam_instance_profile" "ec2_profile" {
     prevent_destroy = true
   }
 }
+data "aws_vpc" "default" {
+  default = true
+}
 
 # ------------------------------
 # Security Group
@@ -50,7 +53,8 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
   description = "Security group for web server (HTML site, Jenkins, Prometheus, Grafana, etc.)"
-  vpc_id      = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id
+
 
   # Allow HTTP
   ingress {
