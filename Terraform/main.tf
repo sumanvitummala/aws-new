@@ -50,71 +50,22 @@ data "aws_vpc" "default" {
 # ------------------------------
 # Security Group
 # ------------------------------
+# Keep your existing Security Group without changing lifecycle
 resource "aws_security_group" "web_sg" {
-  name        = "web_sg"
-  description = "Security group for web server (HTML site, Jenkins, Prometheus, Grafana, etc.)"
-  vpc_id = data.aws_vpc.default.id
+  name        = var.security_group_name
+  description = "Allow HTTP and SSH"
+  vpc_id      = var.vpc_id # Use your existing VPC ID
 
-
-  # Allow HTTP
   ingress {
-    description = "Allow HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Allow SSH
-  ingress {
-    description = "Allow SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Allow Jenkins
   ingress {
-    description = "Allow Jenkins"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Allow Prometheus
-  ingress {
-    description = "Allow Prometheus"
-    from_port   = 9090
-    to_port     = 9090
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Allow Node Exporter
-  ingress {
-    description = "Allow Node Exporter"
-    from_port   = 9100
-    to_port     = 9100
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Allow Grafana
-  ingress {
-    description = "Allow Grafana"
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Allow cAdvisor
-  ingress {
-    description = "Allow cAdvisor"
-    from_port   = 8081
-    to_port     = 8081
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -126,14 +77,52 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Prevent accidental deletion, but ignore harmless updates
-  lifecycle {
-    prevent_destroy = false
+  tags = {
+    Name = "jenkins-ec2-sg"
   }
 
-  tags = {
-    Name = "web_security_group"
+  lifecycle {
+    prevent_destroy = true
   }
+}
+
+# ------------------------------
+# Add Monitoring Ports Safely
+# ------------------------------
+resource "aws_security_group_rule" "node_exporter" {
+  type              = "ingress"
+  from_port         = 9100
+  to_port           = 9100
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.web_sg.id
+}
+
+resource "aws_security_group_rule" "prometheus_ui" {
+  type              = "ingress"
+  from_port         = 9090
+  to_port           = 9090
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.web_sg.id
+}
+
+resource "aws_security_group_rule" "grafana_ui" {
+  type              = "ingress"
+  from_port         = 3000
+  to_port           = 3000
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.web_sg.id
+}
+
+resource "aws_security_group_rule" "cadvisor_ui" {
+  type              = "ingress"
+  from_port         = 8081
+  to_port           = 8081
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.web_sg.id
 }
 
 # ------------------------------
