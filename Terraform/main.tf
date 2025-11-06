@@ -169,6 +169,7 @@ REPO=${var.ecr_repo_url}
 
 # Run HTML App
 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO
+docker image rm $REPO -f || true
 docker pull $REPO
 if [ $(docker ps -q -f name=docker-image-new) ]; then
     docker stop docker-image-new
