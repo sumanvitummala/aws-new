@@ -3,16 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Sumanvi Tummala | Art Portfolio</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #f7f3f0, #e4ded9);
+            color: #333;
+            text-align: center;
+        }
+
+        header {
+            background-color: #d8b4a0;
+            color: white;
+            padding: 2rem 1rem;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+
+        section {
+            padding: 2rem 1rem;
+        }
+
+        .art-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .art-gallery img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .art-gallery img:hover {
+            transform: scale(1.05);
+        }
+
+        footer {
+            background-color: #d8b4a0;
+            color: white;
+            padding: 1rem 0;
+            margin-top: 2rem;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-    <h1>Sumanvi</h1>
-    <h2>Tummala</h2>
-    <hr>
-    <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Distinctio quia, necessitatibus dolore qui dignissimos at, possimus deserunt esse minima cumque laborum tempore debitis vel saepe, dolores explicabo unde quidem non?</p>
-    <br>
-    <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Odit qui laboriosam dolor, debitis, voluptatibus, ratione rem saepe fugit quod ut nobis sed perferendis. Odio autem exercitationem explicabo earum consectetur expedita.</p>
-    <!--Sample Website-->
+    <header>
+        <h1>Sumanvi Tummala</h1>
+        <p>Mandala & Lippan Art Enthusiast 🎨 | Creative Soul</p>
+    </header>
 
+    <section>
+        <h2>Welcome to My Art Portfolio</h2>
+        <p>Explore my world of creativity through Mandala and Lippan artworks.  
+        Each piece reflects balance, precision, and a touch of personal expression.</p>
+
+        <div class="art-gallery">
+            <img src="https://via.placeholder.com/300x200?text=Mandala+Art+1" alt="Mandala Art 1">
+            <img src="https://via.placeholder.com/300x200?text=Mandala+Art+2" alt="Mandala Art 2">
+            <img src="https://via.placeholder.com/300x200?text=Lippan+Art+1" alt="Lippan Art 1">
+        </div>
+    </section>
+
+    <footer>
+        <p>© 2025 Sumanvi Tummala | All Rights Reserved</p>
+    </footer>
 </body>
 </html>
