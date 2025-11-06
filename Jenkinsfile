@@ -45,7 +45,7 @@ pipeline {
             steps {
                 echo '🏗️ Deploying EC2 instance and running Docker container...'
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access']]) {
-                    dir('terraform') {
+                    dir('Terraform') {
                         bat """
                         "%TERRAFORM%" init
 
@@ -84,9 +84,7 @@ pipeline {
     failure { 
         echo '❌ Pipeline failed. Check logs!' 
     }
-    always { 
-        cleanWs() 
-    }
+
 }
 
 }
