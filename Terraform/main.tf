@@ -80,10 +80,9 @@ resource "aws_security_group" "web_sg" {
   tags = {
     Name = "jenkins-ec2-sg"
   }
-
-  lifecycle {
-   prevent_destroy = true
-  }
+  lifecycle{
+    prevent_destroy=true
+  }
 }
 
 # ------------------------------
